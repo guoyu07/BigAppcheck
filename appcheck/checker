@@ -1,0 +1,24 @@
+<?php
+$zbp = null;
+$app = null;
+$version = "0.0.1";
+if (version_compare("5.4", phpversion()) == 1) {
+	echo 'Not support PHP < 5.4';
+	exit;
+}
+
+chdir('./php');
+if (!is_readable('vendor/autoload.php')) {
+	echo 'You should install composer from https://getcomposer.org/ and run ``composer install`` firstly.';
+	exit;
+}
+
+
+// Mock
+$_SERVER["QUERY_STRING"] = "";
+$_SERVER["HTTP_HOST"] = "http://localhost";
+$_SERVER['SERVER_SOFTWARE'] = "IIS"; // 1.4's BUG
+define('ZBP_HOOKERROR', true);
+
+require 'vendor/autoload.php';
+require './bootstrap.php';

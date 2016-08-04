@@ -1,0 +1,24 @@
+{
+    "name": "zsxsoft/appchecker",
+    "description": "Z-Blog应用中心上架检测工具",
+    "license": "MIT",
+    "authors": [{
+        "name": "zsx",
+        "email": "zsx@zsxsoft.com"
+    }],
+    "repositories": [{
+        "type": "vcs",
+        "url": "https://github.com/zblogapp/w3c-validator"
+    }, {
+        "type": "composer",
+        "url": "http://packagist.phpcomposer.com"
+    }, {
+        "packagist": false
+    }],
+    "require": {
+        "php": ">=5.3",
+        "micheh/w3c-validator": "dev-master",
+        "symfony/console": "^2.7"
+    },
+    "require-dev": {}
+}
