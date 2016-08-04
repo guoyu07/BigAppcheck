@@ -1,1 +1,0 @@
-D:\nginx\mysql\bin\

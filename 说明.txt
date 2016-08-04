@@ -1,14 +1,19 @@
-0:下载并解压到C盘
+0:下载并解压到C盘的C:\bigappcheck
 
-C:\bigappcheck
 
 
 1:启动npmm.exe
 
 启动nginx,php,mysql
 
+
+
+
 2:启动AppChecker.exe
 
 
+
+
 3:把你的主题目录放进C:\bigappcheck\zblogphp\zb_users\theme
-把ID填进appcheck里，提交执行
+
+把主题ID填进appcheck里，提交执行
