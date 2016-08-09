@@ -2,14 +2,15 @@
 
 
 
-1:启动npmm.exe
+1:打开npmm.exe
 
-启动nginx,php,mysql
+启动PHP Server
+启动MySQL
 
 
 
 
-2:启动AppChecker.exe
+2:打开AppChecker.exe
 
 
 
