@@ -1,1 +1,1 @@
-C:\BigAppcheck\nginx\
+\BigAppcheck\nginx\

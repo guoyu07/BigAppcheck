@@ -1,1 +1,1 @@
-﻿C:\BigAppcheck\zblogphp
+﻿\BigAppcheck\zblogphp

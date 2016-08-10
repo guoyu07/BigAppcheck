@@ -1,1 +1,1 @@
-C:\bigappcheck\mysql\bin\
+\BigAppcheck\mysql\bin\
