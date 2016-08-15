@@ -10,11 +10,15 @@ require '../function/c_system_base.php';
 ob_clean();
 
 ?>
-var bloghost="<?php echo $zbp->host; ?>";
-var cookiespath="<?php echo $zbp->cookiespath; ?>";
-var ajaxurl="<?php echo $zbp->ajaxurl; ?>";
+var zbp = new ZBP({
+	bloghost: "<?php echo $zbp->host; ?>",
+	ajaxurl: "<?php echo $zbp->ajaxurl; ?>",
+	cookiepath: "<?php echo $zbp->cookiespath; ?>"
+});
 
-
+var bloghost = zbp.options.bloghost;
+var cookiespath = zbp.options.bloghost;
+var ajaxurl = zbp.options.bloghost;
 
 //*********************************************************
 // 目的：    全选
@@ -103,14 +107,8 @@ function ActiveTopMenu(name){
 // 返回：    无
 //*********************************************************
 function bmx2table(){
-	var class_=new Array("color2","color3","color4");
-	var j=$("table[class!='nobmx'] tr:has(th)").addClass("color1");
-    $("table[class!='nobmx']").each(function(){
- 		if(j.length==0){class_[1]="color2";class_[0]="color3";}
-		$(this).find("tr:not(:has(th)):even").removeClass(class_[0]).addClass(class_[1]);
-		$(this).find("tr:not(:has(th)):odd").removeClass(class_[1]).addClass(class_[0]);
-	})
-	$("table[class!='nobmx']").find("tr:not(:has(th))").mouseover(function(){$(this).addClass(class_[2])}).mouseout(function(){$(this).removeClass(class_[2])});
+	$("table:not(.table_striped)").addClass("table_striped");
+	$("table:not(.table_hover)").addClass("table_hover");
 };
 //*********************************************************
 
@@ -128,10 +126,10 @@ function ChangeCheckValue(obj){
 
 	if($(obj).hasClass('imgcheck-on')){
 		$(obj).prev('input').val('1');
-		if($(obj).prev('input').attr('id')=='edtIstop')$(obj).next('select').show();
+		$(obj).next('.off-hide').show();
 	}else{
 		$(obj).prev('input').val('0');
-		if($(obj).prev('input').attr('id')=='edtIstop')$(obj).next('select').hide();
+		$(obj).next('.off-hide').hide();
 	}
 
 }
@@ -148,7 +146,7 @@ function ChangeCheckValue(obj){
 function notify(s){
 	if (window.webkitNotifications) {
 		if (window.webkitNotifications.checkPermission() == 0) {
-			var zb_notifications = window.webkitNotifications.createNotification('<?php echo $bloghost; ?>zb_system/image/admin/logo-16.png', '<?php echo $lang['msg']['notify'];?>', s);
+			var zb_notifications = window.webkitNotifications.createNotification('<?php echo $bloghost; ?>zb_system/image/admin/logo-16.png', '<?php echo $lang['msg']['notify']; ?>', s);
 			zb_notifications.show();
 			zb_notifications.onclick = function() {top.focus(),this.cancel();}
 			zb_notifications.replaceId = 'Meteoric';
@@ -169,7 +167,7 @@ function statistic(s){
 		function(data){
 			$("#tbStatistic tr:first ~ tr").remove();
 			$("#tbStatistic tr:first").after(data);
-			bmx2table();
+			//bmx2table();
 			$("#statloading").hide();
 			$("#updatatime").show();
 		}
@@ -220,7 +218,7 @@ $(document).ready(function(){
 		}
 	);
 
-	//斑马线化表格
+	//斑马线化表格（老版本兼容代码）
 	bmx2table();
 
 	if($('.SubMenu').find('span').length>0){
@@ -244,7 +242,7 @@ $(document).ready(function(){
 
 	$("input[type='file']").click(function(){
 		if(/(MSIE (10|9).+?WPDesktop)|(IEMobile\/(10|9))/g.test(navigator.userAgent)&&$(this).val()==""){
-			alert('<?php echo $lang['error'][65]?>')
+			alert('<?php echo $lang['error'][65] ?>')
 		}
 	})
 
@@ -252,19 +250,27 @@ $(document).ready(function(){
 
 	}else{
 		<?php
-			echo 'if($("div.divHeader,div.divHeader2").first().css("background-image")=="none"){AddHeaderIcon("'. $bloghost .'zb_system/image/common/window.png");}';
-		?>
+echo 'if($("div.divHeader,div.divHeader2").first().css("background-image")=="none"){AddHeaderIcon("' . $bloghost . 'zb_system/image/common/window.png");}';
+?>
 	}
-	
+
 	AutoHideTips();
 
 	SetCookie("timezone",(new Date().getTimezoneOffset()/60)*(-1));
 });
 
 
+var SetCookie = function () { return zbp.cookie.set.apply(null, arguments); }
+var GetCookie = function () { return zbp.cookie.get.apply(null, arguments); }
+var LoadRememberInfo = function () { zbp.userinfo.output.apply(null); return false;}
+var SaveRememberInfo = function () { zbp.userinfo.saveFromHtml.apply(null); return false;}
+var RevertComment = function () { zbp.comment.reply.apply(null); return false;}
+var GetComments = function () { zbp.comment.get.apply(null); return false;}
+var VerifyMessage = function () { zbp.comment.post.apply(null); return false;}
+
 
 <?php
-foreach ($GLOBALS['Filter_Plugin_Admin_Js_Add'] as $fpname => &$fpsignal) {$fpname();}
+foreach ($GLOBALS['hooks']['Filter_Plugin_Admin_Js_Add'] as $fpname => &$fpsignal) {$fpname();}
 
 $s = ob_get_clean();
 $m = md5($s);
@@ -272,9 +278,9 @@ $m = md5($s);
 header('Content-Type: application/x-javascript; charset=utf-8');
 header('Etag: ' . $m);
 
-if( isset($_SERVER["HTTP_IF_NONE_MATCH"]) && $_SERVER["HTTP_IF_NONE_MATCH"] == $m ){
-	SetHttpStatusCode(304);
-	die;
+if (isset($_SERVER["HTTP_IF_NONE_MATCH"]) && $_SERVER["HTTP_IF_NONE_MATCH"] == $m) {
+    SetHttpStatusCode(304);
+    die;
 }
 
 $zbp->CheckGzip();

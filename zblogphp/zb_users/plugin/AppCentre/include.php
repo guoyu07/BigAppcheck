@@ -36,11 +36,11 @@ $zbpvers['131221']='1.1 Taichi Build 131221';
 $zbpvers['140220']='1.2 Hippo Build 140220';
 $zbpvers['140614']='1.3 Wonce Build 140614';
 $zbpvers['150101']='1.4 Deeplue Build 150101';
-if(!isset($zbpvers[$blogversion])){
+if(!isset($zbpvers[$GLOBALS['blogversion']])){
     if(defined('ZC_VERSION_FULL'))
-    	$zbpvers[$blogversion] = ZC_VERSION_FULL;
+    	$zbpvers[$GLOBALS['blogversion']] = ZC_VERSION_FULL;
     else
-    	$zbpvers[$blogversion] = ZC_BLOG_VERSION;
+    	$zbpvers[$GLOBALS['blogversion']] = ZC_BLOG_VERSION;
 }
 
 function ActivePlugin_AppCentre() {

@@ -1,7 +1,6 @@
 <?php
 /**
  * 插件接口相关
-
  * 接口模式复制自Z-Blog ASP版
  * @package Z-BlogPHP
  * @subpackage System/Plugin 操作API
@@ -22,10 +21,10 @@ define('PLUGIN_EXITSIGNAL_RETURN', 'return');
 define('PLUGIN_EXITSIGNAL_BREAK', 'break');
 
 #定义总插件激活函数列表
-$plugins = array();
+$GLOBALS['plugins'] = array();
 
-#定义总接口列表，暂未启用
-$hooks = array();
+#定义总接口列表，1.5版启用，逐渐过度到hooks
+$GLOBALS['hooks'] = array();
 
 /**
  * 注册插件函数，由每个插件主动调用
@@ -36,20 +35,7 @@ $hooks = array();
 
 function RegisterPlugin($strPluginName, $strPluginActiveFunction) {
 
-	$GLOBALS['plugins'][$strPluginName] = $strPluginActiveFunction;
-
-}
-
-/**
- * 激活插件，运行插件激活时加载的函数
- * @return void
-*/
-function ActivePlugin() {
-
-	foreach ($GLOBALS['plugins'] as &$sPluginActiveFunctions) {
-		if(function_exists($sPluginActiveFunctions))
-			$sPluginActiveFunctions();
-	}
+    $GLOBALS['plugins'][$strPluginName] = $strPluginActiveFunction;
 
 }
 
@@ -57,23 +43,24 @@ function ActivePlugin() {
  * 插件安装函数，只在插件安装时运行一次
  * @param string $strPluginName 插件ID
  * @return void
-*/
+ */
 function InstallPlugin($strPluginName) {
 
-	if (function_exists($f = 'InstallPlugin_' . $strPluginName))
-		$f();
+    if (function_exists($f = 'InstallPlugin_' . $strPluginName)) {
+        $f();
+    }
 
 }
 
 /**
  * 插件删除函数，只在插件删除时运行一次
  * @return void
-*/
+ */
 function UninstallPlugin($strPluginName) {
 
-	if (function_exists($f = 'UninstallPlugin_' . $strPluginName) == true) {
-		$f();
-	}
+    if (function_exists($f = 'UninstallPlugin_' . $strPluginName) == true) {
+        $f();
+    }
 
 }
 
@@ -81,83 +68,88 @@ function UninstallPlugin($strPluginName) {
 '*********************************************************
 ' 目的： 创建插件接口
 '*********************************************************
-*/
+ */
 function DefinePluginFilter($strPluginFilter) {
-	if(!isset($GLOBALS['hooks'][$strPluginFilter])){
-		$GLOBALS['hooks'][$strPluginFilter] = array();
-		$GLOBALS[$strPluginFilter] = &$GLOBALS['hooks'][$strPluginFilter];
-		return true;
-	}
+    if (!isset($GLOBALS['hooks'][$strPluginFilter])) {
+        $GLOBALS['hooks'][$strPluginFilter] = array();
+        $GLOBALS[$strPluginFilter] = &$GLOBALS['hooks'][$strPluginFilter];
+
+        return true;
+    }
 }
 
 /*
 '*********************************************************
 ' 目的： 检查插件接口
 '*********************************************************
-*/
+ */
 function ExistsPluginFilter($strPluginFilter) {
-	return isset($GLOBALS['hooks'][$strPluginFilter]);
+    return isset($GLOBALS['hooks'][$strPluginFilter]);
 }
 
 /*
 '*********************************************************
 ' 目的： 调用插件接口
 '*********************************************************
-*/
-function & UsingPluginFilter($strPluginFilter) {
-	if(isset($GLOBALS['hooks'][$strPluginFilter]))
-		return $GLOBALS['hooks'][$strPluginFilter];
-	return array();
+ */
+function &UsingPluginFilter($strPluginFilter) {
+    if (isset($GLOBALS['hooks'][$strPluginFilter])) {
+        return $GLOBALS['hooks'][$strPluginFilter];
+    }
+
+    return array();
 }
 
 /*
 '*********************************************************
 ' 目的： 移除插件接口
 '*********************************************************
-*/
+ */
 function RemovePluginFilter($strPluginFilter) {
-	if(isset($GLOBALS['hooks'][$strPluginFilter])){
-		unset($GLOBALS[$strPluginFilter]);
-		unset($GLOBALS['hooks'][$strPluginFilter]);
-		return true;
-	}
-}
+    if (isset($GLOBALS['hooks'][$strPluginFilter])) {
+        unset($GLOBALS[$strPluginFilter]);
+        unset($GLOBALS['hooks'][$strPluginFilter]);
 
+        return true;
+    }
+}
 
 /*
 '*********************************************************
 ' 目的：挂上Action接口
 ' 参数：'plugname:接口名称
-		'actioncode:要执行的语句，要转义为Execute可执行语句
+'actioncode:要执行的语句，要转义为Execute可执行语句
 '*********************************************************
-*/
+ */
 //function Add_Action_Plugin($plugname,$actioncode){
-//	$GLOBALS[$plugname][]=$actioncode;
+//	$GLOBALS['hooks'][$plugname][]=$actioncode;
 //}
 
 /*
 '*********************************************************
 ' 目的：挂上Filter接口
 ' 参数：'plugname:接口名称
-		'functionname:要挂接的函数名
-		'exitsignal:return,break,continue
+'functionname:要挂接的函数名
+'exitsignal:return,break,continue
 '*********************************************************
-*/
+ */
 function Add_Filter_Plugin($plugname, $functionname, $exitsignal = PLUGIN_EXITSIGNAL_NONE) {
-	if( isset($GLOBALS[$plugname]) ){
-		$GLOBALS[$plugname][$functionname] = $exitsignal;
-	}
+    if (isset($GLOBALS['hooks'][$plugname])) {
+        if (!isset($GLOBALS['hooks'][$plugname][$functionname])) {
+            $GLOBALS['hooks'][$plugname][$functionname] = $exitsignal;
+        }
+    }
 }
 
 /*
 '*********************************************************
 ' 目的：挂上Response接口
 ' 参数：'plugname:接口名称
-		'parameter:要写入的内容
+'parameter:要写入的内容
 '*********************************************************
-*/
+ */
 //function Add_Response_Plugin($plugname,$functionname){
-//	$GLOBALS[$plugname][]=$functionname;
+//	$GLOBALS['hooks'][$plugname][]=$functionname;
 //}
 
 ################################################################################################################
@@ -171,8 +163,19 @@ function Add_Filter_Plugin($plugname, $functionname, $exitsignal = PLUGIN_EXITSI
 '说明:定义Debug_Shutdown_Handler,Debug_Exception_Handler,Debug_Error_Handler函数的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Debug_Handler');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Debug_Display
+'参数:
+'说明:定义ZBlogException的Display函数的接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Debug_Display');
 
 /*
 '**************************************************<
@@ -182,7 +185,7 @@ DefinePluginFilter('Filter_Plugin_Debug_Handler');
 '说明:监控autoload魔术方法
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Autoload');
 
 /*
@@ -193,9 +196,8 @@ DefinePluginFilter('Filter_Plugin_Autoload');
 '说明:监控记录函数
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Logs');
-
 
 #DbSql类里的接口
 
@@ -207,10 +209,8 @@ DefinePluginFilter('Filter_Plugin_Logs');
 '说明:DbSql类的SQL过滤和统计方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_DbSql_Filter');
-
-
 
 #ZBP类里的接口
 
@@ -222,7 +222,7 @@ DefinePluginFilter('Filter_Plugin_DbSql_Filter');
 '说明:Zbp类的魔术方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_Call');
 
 /*
@@ -233,7 +233,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_Call');
 '说明:Zbp类的魔术方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_Get');
 
 /*
@@ -244,7 +244,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_Get');
 '说明:Zbp类的魔术方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_Set');
 
 /*
@@ -255,19 +255,8 @@ DefinePluginFilter('Filter_Plugin_Zbp_Set');
 '说明:Zbp类的检查权限接口(检查当前用户)
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_CheckRights');
-
-/*
-'**************************************************<
-'类型:Filter
-'名称:Filter_Plugin_Zbp_CheckRightsByLevel
-'参数:$level,$action
-'说明:Zbp类的检查权限接口(检查指定level)
-'调用:
-'**************************************************>
-*/
-DefinePluginFilter('Filter_Plugin_Zbp_CheckRightsByLevel');
 
 /*
 '**************************************************<
@@ -277,7 +266,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_CheckRightsByLevel');
 '说明:Zbp类的显示错误接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_ShowError');
 
 /*
@@ -288,7 +277,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_ShowError');
 '说明:Zbp类的显示验证码接口，具有唯一性；
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_ShowValidCode');
 
 /*
@@ -299,7 +288,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_ShowValidCode');
 '说明:Zbp类的比对验证码接口，具有唯一性；
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_CheckValidCode');
 
 /*
@@ -310,7 +299,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_CheckValidCode');
 '说明:Zbp类的重新编译模板接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_BuildTemplate');
 
 /*
@@ -321,30 +310,8 @@ DefinePluginFilter('Filter_Plugin_Zbp_BuildTemplate');
 '说明:Zbp类的生成模板标签接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_MakeTemplatetags');
-
-/*
-'**************************************************<
-'类型:Filter
-'名称:Filter_Plugin_Zbp_PrepareTemplate
-'参数:$template
-'说明:Zbp类的模板准备接口
-'调用:
-'**************************************************>
-*/
-DefinePluginFilter('Filter_Plugin_Zbp_PrepareTemplate');
-
-/*
-'**************************************************<
-'类型:Filter
-'名称:Filter_Plugin_Zbp_LoadTemplate
-'参数:$template
-'说明:Zbp类的模板加载接口
-'调用:
-'**************************************************>
-*/
-DefinePluginFilter('Filter_Plugin_Zbp_LoadTemplate');
 
 /*
 '**************************************************<
@@ -354,7 +321,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_LoadTemplate');
 '说明:Zbp类的生成模块内容的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_BuildModule');
 
 /*
@@ -365,9 +332,8 @@ DefinePluginFilter('Filter_Plugin_Zbp_BuildModule');
 '说明:Zbp类的加载接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_Load');
-
 
 /*
 '**************************************************<
@@ -377,7 +343,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_Load');
 '说明:Zbp类的加载(预处理)接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_Load_Pre');
 
 /*
@@ -388,7 +354,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_Load_Pre');
 '说明:Zbp类的后台管理初始加载接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_LoadManage');
 
 /*
@@ -399,7 +365,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_LoadManage');
 '说明:Zbp类的终结接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Zbp_Terminate');
 
 ################################################################################################################
@@ -413,7 +379,7 @@ DefinePluginFilter('Filter_Plugin_Zbp_Terminate');
 '说明:定义index.php接口 起动
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Index_Begin');
 
 /*
@@ -424,7 +390,7 @@ DefinePluginFilter('Filter_Plugin_Index_Begin');
 '说明:定义index.php接口 结束
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Index_End');
 
 /*
@@ -435,7 +401,7 @@ DefinePluginFilter('Filter_Plugin_Index_End');
 '说明:c_html_js_add.php脚本调用,JS页接口需要强制开启
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Html_Js_Add');
 
 /*
@@ -446,9 +412,18 @@ DefinePluginFilter('Filter_Plugin_Html_Js_Add');
 '说明:搜索页接口，可以接管搜索页。
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Search_Begin');
-
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Search_End
+'参数:
+'说明:搜索接口 结束
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Search_End');
 /*
 '**************************************************<
 '类型:Filter
@@ -457,8 +432,18 @@ DefinePluginFilter('Filter_Plugin_Search_Begin');
 '说明:Feed页接口，可以接管Feed页。
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Feed_Begin');
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Feed_End
+'参数:
+'说明:Feed页接口 结束
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Feed_End');
 
 ################################################################################################################
 #CMD里的接口
@@ -471,7 +456,7 @@ DefinePluginFilter('Filter_Plugin_Feed_Begin');
 '说明:cmd.php的启动接口,可以在这里拦截各种action
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Cmd_Begin');
 
 /*
@@ -482,7 +467,7 @@ DefinePluginFilter('Filter_Plugin_Cmd_Begin');
 '说明:cmd.php的Ajax命令专用接口，插件需要自行判断权限
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Cmd_Ajax');
 
 ################################################################################################################
@@ -496,7 +481,7 @@ DefinePluginFilter('Filter_Plugin_Cmd_Ajax');
 '说明:定义Login.php首页header接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Login_Header');
 
 /*
@@ -507,7 +492,7 @@ DefinePluginFilter('Filter_Plugin_Login_Header');
 '说明:定义其它页的header接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Other_Header');
 
 #c_system_misc里的接口
@@ -520,7 +505,7 @@ DefinePluginFilter('Filter_Plugin_Other_Header');
 '说明:c_system_misc.php的启动接口,可以在这里拦截各种type
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Misc_Begin');
 
 /*
@@ -531,7 +516,7 @@ DefinePluginFilter('Filter_Plugin_Misc_Begin');
 '说明:后台管理页的启动接口,可以拦截后台管理请求实现自己的管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_Begin');
 
 /*
@@ -542,7 +527,7 @@ DefinePluginFilter('Filter_Plugin_Admin_Begin');
 '说明:后台管理页的终结接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_End');
 
 /*
@@ -553,7 +538,7 @@ DefinePluginFilter('Filter_Plugin_Admin_End');
 '说明:定义后台首页header接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_Header');
 
 /*
@@ -564,7 +549,7 @@ DefinePluginFilter('Filter_Plugin_Admin_Header');
 '说明:定义后台首页footer接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_Footer');
 
 /*
@@ -575,7 +560,7 @@ DefinePluginFilter('Filter_Plugin_Admin_Footer');
 '说明:定义后台左侧栏接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_LeftMenu');
 
 /*
@@ -586,7 +571,7 @@ DefinePluginFilter('Filter_Plugin_Admin_LeftMenu');
 '说明:定义后台顶部导航栏接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_TopMenu');
 
 /*
@@ -597,7 +582,7 @@ DefinePluginFilter('Filter_Plugin_Admin_TopMenu');
 '说明:后台首页SubMenu
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_SiteInfo_SubMenu');
 
 /*
@@ -608,7 +593,7 @@ DefinePluginFilter('Filter_Plugin_Admin_SiteInfo_SubMenu');
 '说明:文章管理SubMenu
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_ArticleMng_SubMenu');
 
 /*
@@ -619,7 +604,7 @@ DefinePluginFilter('Filter_Plugin_Admin_ArticleMng_SubMenu');
 '说明:页面管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_PageMng_SubMenu');
 
 /*
@@ -630,7 +615,7 @@ DefinePluginFilter('Filter_Plugin_Admin_PageMng_SubMenu');
 '说明:分类管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_CategoryMng_SubMenu');
 
 /*
@@ -641,7 +626,7 @@ DefinePluginFilter('Filter_Plugin_Admin_CategoryMng_SubMenu');
 '说明:评论管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_CommentMng_SubMenu');
 
 /*
@@ -652,7 +637,7 @@ DefinePluginFilter('Filter_Plugin_Admin_CommentMng_SubMenu');
 '说明:用户管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_MemberMng_SubMenu');
 
 /*
@@ -663,7 +648,7 @@ DefinePluginFilter('Filter_Plugin_Admin_MemberMng_SubMenu');
 '说明:
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_UploadMng_SubMenu');
 
 /*
@@ -674,7 +659,7 @@ DefinePluginFilter('Filter_Plugin_Admin_UploadMng_SubMenu');
 '说明:标签管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_TagMng_SubMenu');
 
 /*
@@ -685,7 +670,7 @@ DefinePluginFilter('Filter_Plugin_Admin_TagMng_SubMenu');
 '说明:插件管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_PluginMng_SubMenu');
 
 /*
@@ -696,7 +681,7 @@ DefinePluginFilter('Filter_Plugin_Admin_PluginMng_SubMenu');
 '说明:主题管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_ThemeMng_SubMenu');
 
 /*
@@ -707,7 +692,7 @@ DefinePluginFilter('Filter_Plugin_Admin_ThemeMng_SubMenu');
 '说明:模块管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_ModuleMng_SubMenu');
 
 /*
@@ -718,7 +703,7 @@ DefinePluginFilter('Filter_Plugin_Admin_ModuleMng_SubMenu');
 '说明:设置管理
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_SettingMng_SubMenu');
 
 /*
@@ -729,7 +714,7 @@ DefinePluginFilter('Filter_Plugin_Admin_SettingMng_SubMenu');
 '说明:文章页面编辑页开始接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Edit_Begin');
 
 /*
@@ -740,7 +725,7 @@ DefinePluginFilter('Filter_Plugin_Edit_Begin');
 '说明:文章页面编辑页结束接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Edit_End');
 
 /*
@@ -751,7 +736,7 @@ DefinePluginFilter('Filter_Plugin_Edit_End');
 '说明:文章页面编辑1号输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Edit_Response');
 
 /*
@@ -762,7 +747,7 @@ DefinePluginFilter('Filter_Plugin_Edit_Response');
 '说明:文章页面编辑2号输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Edit_Response2');
 
 /*
@@ -773,7 +758,7 @@ DefinePluginFilter('Filter_Plugin_Edit_Response2');
 '说明:文章页面编辑4号输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Edit_Response4');
 
 /*
@@ -784,7 +769,7 @@ DefinePluginFilter('Filter_Plugin_Edit_Response4');
 '说明:文章页面编辑5号输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Edit_Response5');
 
 /*
@@ -795,7 +780,7 @@ DefinePluginFilter('Filter_Plugin_Edit_Response5');
 '说明:文章页面编辑3号输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Edit_Response3');
 
 /*
@@ -806,7 +791,7 @@ DefinePluginFilter('Filter_Plugin_Edit_Response3');
 '说明:分类编辑页输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Category_Edit_Response');
 
 /*
@@ -817,7 +802,7 @@ DefinePluginFilter('Filter_Plugin_Category_Edit_Response');
 '说明:标签编辑页输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Tag_Edit_Response');
 
 /*
@@ -828,7 +813,7 @@ DefinePluginFilter('Filter_Plugin_Tag_Edit_Response');
 '说明:会员编辑页输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Member_Edit_Response');
 
 /*
@@ -839,7 +824,7 @@ DefinePluginFilter('Filter_Plugin_Member_Edit_Response');
 '说明:模块编辑页输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Module_Edit_Response');
 
 /*
@@ -850,22 +835,44 @@ DefinePluginFilter('Filter_Plugin_Module_Edit_Response');
 '说明:c_admin_js_add.php脚本页的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Admin_Js_Add');
 
 /*
 '**************************************************<
 '类型:Filter
-'名称:Filter_Plugin_CreateOptoinsOfCategorys
+'名称:Filter_Plugin_OutputOptionItemsOfCategories
 '参数:
-'说明:定义CreateOptoinsOfCategorys函数里的接口
+'说明:定义OutputOptionItemsOfCategories函数里的接口
 '调用:
 '**************************************************>
-*/
-DefinePluginFilter('Filter_Plugin_CreateOptoinsOfCategorys');
+ */
+DefinePluginFilter('Filter_Plugin_OutputOptionItemsOfCategories');
 
 ################################################################################################################
 #Event里的接口
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_GetPost_Result
+'参数:&$post
+'说明:定义GetPost输出结果接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_GetPost_Result');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_GetList_Result
+'参数:&$list
+'说明:定义GetList输出结果接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_GetList_Result');
+
 /*
 '**************************************************<
 '类型:Filter
@@ -874,7 +881,7 @@ DefinePluginFilter('Filter_Plugin_CreateOptoinsOfCategorys');
 '说明:定义ViewIndex输出接口Begin
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewIndex_Begin');
 
 /*
@@ -885,7 +892,7 @@ DefinePluginFilter('Filter_Plugin_ViewIndex_Begin');
 '说明:定义ViewFeed输出接口Begin
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewFeed_Begin');
 
 /*
@@ -896,7 +903,7 @@ DefinePluginFilter('Filter_Plugin_ViewFeed_Begin');
 '说明:定义ViewSearch输出接口Begin
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewSearch_Begin');
 
 /*
@@ -907,7 +914,7 @@ DefinePluginFilter('Filter_Plugin_ViewSearch_Begin');
 '说明:定义ViewAuto输出接口Begin
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewAuto_Begin');
 
 /*
@@ -918,7 +925,7 @@ DefinePluginFilter('Filter_Plugin_ViewAuto_Begin');
 '说明:定义ViewAuto输出接口End
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewAuto_End');
 
 /*
@@ -929,7 +936,7 @@ DefinePluginFilter('Filter_Plugin_ViewAuto_End');
 '说明:定义列表输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewList_Begin');
 
 /*
@@ -940,8 +947,30 @@ DefinePluginFilter('Filter_Plugin_ViewList_Begin');
 '说明:定义列表核心接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewList_Core');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_ViewList_Core
+'参数:$q, $page, $w, $pagebar
+'说明:定义搜索核心接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_ViewSearch_Core');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_ViewList_Core
+'参数:$w
+'说明:定义Feed核心接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_ViewFeed_Core');
 
 /*
 '**************************************************<
@@ -951,7 +980,7 @@ DefinePluginFilter('Filter_Plugin_ViewList_Core');
 '说明:定义列表输出接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewPost_Begin');
 
 /*
@@ -962,7 +991,7 @@ DefinePluginFilter('Filter_Plugin_ViewPost_Begin');
 '说明:
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewList_Template');
 
 /*
@@ -973,7 +1002,7 @@ DefinePluginFilter('Filter_Plugin_ViewList_Template');
 '说明:
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewPost_Template');
 
 /*
@@ -984,8 +1013,19 @@ DefinePluginFilter('Filter_Plugin_ViewPost_Template');
 '说明:
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_ViewComments_Template');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_ViewComment_Template
+'参数:&$template
+'说明:
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_ViewComment_Template');
 
 /*
 '**************************************************<
@@ -995,7 +1035,7 @@ DefinePluginFilter('Filter_Plugin_ViewComments_Template');
 '说明:模块编辑的核心接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostModule_Core');
 
 /*
@@ -1006,7 +1046,7 @@ DefinePluginFilter('Filter_Plugin_PostModule_Core');
 '说明:会员编辑的核心接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostMember_Core');
 
 /*
@@ -1017,7 +1057,7 @@ DefinePluginFilter('Filter_Plugin_PostMember_Core');
 '说明:标签编辑的核心接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostTag_Core');
 
 /*
@@ -1028,7 +1068,7 @@ DefinePluginFilter('Filter_Plugin_PostTag_Core');
 '说明:分类编辑的核心接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostCategory_Core');
 
 /*
@@ -1039,7 +1079,7 @@ DefinePluginFilter('Filter_Plugin_PostCategory_Core');
 '说明:评论发表的核心接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostComment_Core');
 
 /*
@@ -1050,7 +1090,7 @@ DefinePluginFilter('Filter_Plugin_PostComment_Core');
 '说明:文章编辑的核心接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostArticle_Core');
 
 /*
@@ -1061,7 +1101,7 @@ DefinePluginFilter('Filter_Plugin_PostArticle_Core');
 '说明:页面编辑的核心接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostPage_Core');
 
 /*
@@ -1072,7 +1112,7 @@ DefinePluginFilter('Filter_Plugin_PostPage_Core');
 '说明:会员编辑成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostMember_Succeed');
 
 /*
@@ -1083,7 +1123,7 @@ DefinePluginFilter('Filter_Plugin_PostMember_Succeed');
 '说明:标签编辑成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostTag_Succeed');
 
 /*
@@ -1094,7 +1134,7 @@ DefinePluginFilter('Filter_Plugin_PostTag_Succeed');
 '说明:分类编辑成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostCategory_Succeed');
 
 /*
@@ -1105,7 +1145,7 @@ DefinePluginFilter('Filter_Plugin_PostCategory_Succeed');
 '说明:评论发表成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostComment_Succeed');
 
 /*
@@ -1116,7 +1156,7 @@ DefinePluginFilter('Filter_Plugin_PostComment_Succeed');
 '说明:页面编辑成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostPage_Succeed');
 
 /*
@@ -1127,7 +1167,7 @@ DefinePluginFilter('Filter_Plugin_PostPage_Succeed');
 '说明:文章编辑成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostArticle_Succeed');
 
 /*
@@ -1138,7 +1178,7 @@ DefinePluginFilter('Filter_Plugin_PostArticle_Succeed');
 '说明:模块编辑成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_PostModule_Succeed');
 
 /*
@@ -1149,7 +1189,7 @@ DefinePluginFilter('Filter_Plugin_PostModule_Succeed');
 '说明:会员删除成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_DelMember_Succeed');
 
 /*
@@ -1160,7 +1200,7 @@ DefinePluginFilter('Filter_Plugin_DelMember_Succeed');
 '说明:标签删除成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_DelTag_Succeed');
 
 /*
@@ -1171,7 +1211,7 @@ DefinePluginFilter('Filter_Plugin_DelTag_Succeed');
 '说明:分类删除成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_DelCategory_Succeed');
 
 /*
@@ -1182,7 +1222,7 @@ DefinePluginFilter('Filter_Plugin_DelCategory_Succeed');
 '说明:评论删除成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_DelComment_Succeed');
 
 /*
@@ -1193,7 +1233,7 @@ DefinePluginFilter('Filter_Plugin_DelComment_Succeed');
 '说明:页面删除成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_DelPage_Succeed');
 
 /*
@@ -1204,7 +1244,7 @@ DefinePluginFilter('Filter_Plugin_DelPage_Succeed');
 '说明:文章删除成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_DelArticle_Succeed');
 
 /*
@@ -1215,11 +1255,66 @@ DefinePluginFilter('Filter_Plugin_DelArticle_Succeed');
 '说明:模块删除成功的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_DelModule_Succeed');
 
 ################################################################################################################
 #类里的接口
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Base_Data_Load
+'参数:&$this,&data
+'说明:干预Base类data属性的接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Base_Data_Load');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Post_Url
+'参数:&$this
+'说明:干预Post类Url方法的接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Post_Url');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Category_Url
+'参数:&$this
+'说明:干预Category类Url方法的接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Category_Url');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Tag_Url
+'参数:&$this
+'说明:干预Tag类Url方法的接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Tag_Url');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Member_Url
+'参数:&$this
+'说明:干预Member类Url方法的接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Member_Url');
 
 /*
 '**************************************************<
@@ -1229,7 +1324,7 @@ DefinePluginFilter('Filter_Plugin_DelModule_Succeed');
 '说明:Post类的CommentPostUrl接口
 '调用:返回CommentPostUrl值.
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Post_CommentPostUrl');
 
 /*
@@ -1240,7 +1335,7 @@ DefinePluginFilter('Filter_Plugin_Post_CommentPostUrl');
 '说明:Post类的RelatedList 接口
 '调用:返回RelatedList Array.
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Post_RelatedList');
 
 /*
@@ -1251,7 +1346,7 @@ DefinePluginFilter('Filter_Plugin_Post_RelatedList');
 '说明:Post类的魔术方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Post_Call');
 
 /*
@@ -1262,7 +1357,7 @@ DefinePluginFilter('Filter_Plugin_Post_Call');
 '说明:Comment类的魔术方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Comment_Call');
 
 /*
@@ -1273,7 +1368,7 @@ DefinePluginFilter('Filter_Plugin_Comment_Call');
 '说明:Tag类的魔术方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Tag_Call');
 
 /*
@@ -1284,7 +1379,7 @@ DefinePluginFilter('Filter_Plugin_Tag_Call');
 '说明:Category类的魔术方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Category_Call');
 
 /*
@@ -1295,7 +1390,7 @@ DefinePluginFilter('Filter_Plugin_Category_Call');
 '说明:Member类的魔术方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Member_Call');
 
 /*
@@ -1306,7 +1401,7 @@ DefinePluginFilter('Filter_Plugin_Member_Call');
 '说明:Post类的Del方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Post_Del');
 
 /*
@@ -1317,7 +1412,7 @@ DefinePluginFilter('Filter_Plugin_Post_Del');
 '说明:Tag类的Del方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Tag_Del');
 
 /*
@@ -1328,7 +1423,7 @@ DefinePluginFilter('Filter_Plugin_Tag_Del');
 '说明:Comment类的Del方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Comment_Del');
 
 /*
@@ -1339,7 +1434,7 @@ DefinePluginFilter('Filter_Plugin_Comment_Del');
 '说明:Category类的Del方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Category_Del');
 
 /*
@@ -1350,7 +1445,7 @@ DefinePluginFilter('Filter_Plugin_Category_Del');
 '说明:Member类的Del方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Member_Del');
 
 /*
@@ -1361,7 +1456,7 @@ DefinePluginFilter('Filter_Plugin_Member_Del');
 '说明:Module类的Del方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Module_Del');
 
 /*
@@ -1372,7 +1467,7 @@ DefinePluginFilter('Filter_Plugin_Module_Del');
 '说明:Post类的Save方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Post_Save');
 
 /*
@@ -1383,7 +1478,7 @@ DefinePluginFilter('Filter_Plugin_Post_Save');
 '说明:Comment类的Save方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Comment_Save');
 
 /*
@@ -1394,7 +1489,7 @@ DefinePluginFilter('Filter_Plugin_Comment_Save');
 '说明:Tag类的Save方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Tag_Save');
 
 /*
@@ -1405,7 +1500,7 @@ DefinePluginFilter('Filter_Plugin_Tag_Save');
 '说明:Category类的Save方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Category_Save');
 
 /*
@@ -1416,7 +1511,7 @@ DefinePluginFilter('Filter_Plugin_Category_Save');
 '说明:Member类的Save方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Member_Save');
 
 /*
@@ -1427,7 +1522,7 @@ DefinePluginFilter('Filter_Plugin_Member_Save');
 '说明:Module类的Save方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Module_Save');
 
 /*
@@ -1438,7 +1533,7 @@ DefinePluginFilter('Filter_Plugin_Module_Save');
 '说明:Mebmer类的Avatar接口
 '调用:返回Avatar值,可以返回null.
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Mebmer_Avatar');
 
 /*
@@ -1449,7 +1544,7 @@ DefinePluginFilter('Filter_Plugin_Mebmer_Avatar');
 '说明:Upload类的SaveFile方法接口
 '调用:对$tmp临时文件进行拦截
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Upload_SaveFile');
 
 /*
@@ -1460,7 +1555,7 @@ DefinePluginFilter('Filter_Plugin_Upload_SaveFile');
 '说明:Upload类的SaveBase64File方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Upload_SaveBase64File');
 
 /*
@@ -1471,7 +1566,7 @@ DefinePluginFilter('Filter_Plugin_Upload_SaveBase64File');
 '说明:Upload类的DelFile方法接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Upload_DelFile');
 
 /*
@@ -1482,8 +1577,19 @@ DefinePluginFilter('Filter_Plugin_Upload_DelFile');
 '说明:Upload类的Url方法接口
 '调用:返回Url的值,可以返回null.
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Upload_Url');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Upload_Dir
+'参数:$upload
+'说明:Upload类的Dir方法接口
+'调用:返回Dir的值,可以返回null.
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Upload_Dir');
 
 /*
 '**************************************************<
@@ -1493,7 +1599,7 @@ DefinePluginFilter('Filter_Plugin_Upload_Url');
 '说明:Template类编译一个模板前的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Template_Compiling_Begin');
 
 /*
@@ -1504,7 +1610,7 @@ DefinePluginFilter('Filter_Plugin_Template_Compiling_Begin');
 '说明:Template类编译一个模板后的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Template_Compiling_End');
 
 /*
@@ -1515,8 +1621,20 @@ DefinePluginFilter('Filter_Plugin_Template_Compiling_End');
 '说明:Template类读取一个模板前的接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_Template_GetTemplate');
+
+/*
+'**************************************************<
+'类型:Filter
+'名称:Filter_Plugin_Template_MakeTemplatetags
+'参数:$this,$name
+'说明:Template类读取一个模板前的接口
+'调用:
+'**************************************************>
+ */
+DefinePluginFilter('Filter_Plugin_Template_MakeTemplatetags');
+
 
 /*
 '**************************************************<
@@ -1526,7 +1644,7 @@ DefinePluginFilter('Filter_Plugin_Template_GetTemplate');
 '说明:大数据文章接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_LargeData_Aritcle');
 
 /*
@@ -1537,7 +1655,7 @@ DefinePluginFilter('Filter_Plugin_LargeData_Aritcle');
 '说明:大数据页面接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_LargeData_Page');
 
 /*
@@ -1548,7 +1666,7 @@ DefinePluginFilter('Filter_Plugin_LargeData_Page');
 '说明:大数据评论接口
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_LargeData_Comment');
 
 /*
@@ -1559,7 +1677,7 @@ DefinePluginFilter('Filter_Plugin_LargeData_Comment');
 '说明:大数据增减文章标签关联表
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_LargeData_CountTagArray');
 
 /*
@@ -1570,5 +1688,5 @@ DefinePluginFilter('Filter_Plugin_LargeData_CountTagArray');
 '说明:大数据GetList函数
 '调用:
 '**************************************************>
-*/
+ */
 DefinePluginFilter('Filter_Plugin_LargeData_GetList');

@@ -12,33 +12,33 @@ require '../function/c_system_admin.php';
 $zbp->CheckGzip();
 $zbp->Load();
 
-$action='CategoryEdt';
-if (!$zbp->CheckRights($action)) {$zbp->ShowError(6,__FILE__,__LINE__);die();}
+$action = 'CategoryEdt';
+if (!$zbp->CheckRights($action)) {$zbp->ShowError(6, __FILE__, __LINE__);die();}
 
 $blogtitle = $lang['msg']['category_edit'];
 
-require $blogpath . 'zb_system/admin/admin_header.php';
-require $blogpath . 'zb_system/admin/admin_top.php';
+require ZBP_PATH . 'zb_system/admin/admin_header.php';
+require ZBP_PATH . 'zb_system/admin/admin_top.php';
 
 ?>
 <?php
 
-$cateid=null;
-if(isset($_GET['id'])){$cateid = (integer)GetVars('id','GET');}else{$cateid = 0;}
+$cateid = null;
+if (isset($_GET['id'])) {$cateid = (integer) GetVars('id', 'GET');} else { $cateid = 0;}
 
-$cate=$zbp->GetCategoryByID($cateid);
+$cate = $zbp->GetCategoryByID($cateid);
 
-$p=null;
+$p = null;
 
-$p .='<option value="0">' . $lang['msg']['none'] . '</option>';
+$p .= '<option value="0">' . $lang['msg']['none'] . '</option>';
 
-foreach ($zbp->categorysbyorder as $k => $v) {
-	if($v->ID==$cate->ID){continue;}
-	#if($v->RootID==$cate->ID){continue;}
-	#if($cate->RootID>0){if($v->RootID==$cate->RootID){continue;}}
-	if($v->Level<3){
-		$p .='<option ' . ($v->ID==$cate->ParentID?'selected="selected"':'') . ' value="'. $v->ID .'">' . $v->SymbolName . '</option>';
-	}
+foreach ($zbp->categoriesbyorder as $k => $v) {
+    if ($v->ID == $cate->ID) {continue;}
+    #if($v->RootID==$cate->ID){continue;}
+    #if($cate->RootID>0){if($v->RootID==$cate->RootID){continue;}}
+    if ($v->Level < 3) {
+        $p .= '<option ' . ($v->ID == $cate->ParentID ? 'selected="selected"' : '') . ' value="' . $v->ID . '">' . $v->SymbolName . '</option>';
+    }
 }
 
 ?>
@@ -78,14 +78,14 @@ foreach ($zbp->categorysbyorder as $k => $v) {
 					<?php echo $lang['msg']['template']?>:</span>
 				<br />
 				<select class="edit" size="1" name="Template" id="cmbTemplate">
-					<?php echo CreateOptoinsOfTemplate($cate->Template);?></select>
+					<?php echo OutputOptionItemsOfTemplate($cate->Template);?></select>
 				<input type="hidden" name="edtTemplate" id="edtTemplate" value="<?php echo $cate->Template;?>" /></p>
 			<p>
 				<span class="title">
 					<?php echo $lang['msg']['category_aritles_default_template']?>:</span>
 				<br />
 				<select class="edit" size="1" name="LogTemplate" id="cmbLogTemplate">
-					<?php echo CreateOptoinsOfTemplate($cate->LogTemplate);?></select>
+					<?php echo OutputOptionItemsOfTemplate($cate->LogTemplate);?></select>
 			</p>
 			<p>
 				<span class='title'>
@@ -97,12 +97,12 @@ foreach ($zbp->categorysbyorder as $k => $v) {
 				<label>
 					<span class="title">
 						<?php echo $lang['msg']['add_to_navbar']?>:</span>
-					<input type="text" name="AddNavbar" id="edtAddNavbar" value="<?php echo (int)$zbp->CheckItemToNavbar('category',$cate->ID)?>" class="checkbox" />
+					<input type="text" name="AddNavbar" id="edtAddNavbar" value="<?php echo (int) $zbp->CheckItemToNavbar('category', $cate->ID)?>" class="checkbox" />
 				</label>
 			</p>
 			<!-- 1号输出接口 -->
 			<div id='response' class='editmod2'>
-				<?php foreach ($GLOBALS['Filter_Plugin_Category_Edit_Response'] as $fpname => &$fpsignal) {$fpname();}?>
+				<?php foreach ($GLOBALS['hooks']['Filter_Plugin_Category_Edit_Response'] as $fpname => &$fpsignal) {$fpname();}?>
 			</div>
 			<p>
 				<input type="submit" class="button" value="<?php echo $lang['msg']['submit']?>" id="btnPost" onclick="return checkInfo();" /></p>
@@ -124,7 +124,7 @@ function checkInfo(){
 </div>
 
 <?php
-require $blogpath . 'zb_system/admin/admin_footer.php';
+require ZBP_PATH . 'zb_system/admin/admin_footer.php';
 
 RunTime();
 ?>
